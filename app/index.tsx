@@ -1,5 +1,5 @@
 import { theme } from "@/constants/colors";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -24,6 +24,8 @@ type ToDo = {
 export default function Index() {
   const [text, setText] = useState("");
   const [toDos, setToDos] = useState<Map<string, ToDo>>(new Map());
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState<string>("");
 
   const onChangeText = (payload: string) => setText(payload);
 
@@ -81,6 +83,24 @@ export default function Index() {
     }
   };
 
+  const startEditing = (key: string, currentText: string) => {
+    setEditingKey(key);
+    setEditingText(currentText);
+  };
+
+  const editToDo = async (key: string) => {
+    const newToDos = new Map(toDos);
+    const toDo = newToDos.get(key);
+    if (toDo) {
+      toDo.text = editingText;
+      newToDos.set(key, toDo);
+      setToDos(newToDos);
+      await saveToDos(newToDos);
+      setEditingKey(null);
+      setEditingText("");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -106,23 +126,49 @@ export default function Index() {
             <TouchableOpacity onPress={() => toggleComplete(key)}>
               <Ionicons
                 name={toDo.completed ? "checkbox" : "square-outline"}
-                size={22}
+                size={24}
                 color={theme.white}
               />
             </TouchableOpacity>
-            <Text
-              style={[
-                styles.toDoText,
-                {
-                  textDecorationLine: toDo.completed ? "line-through" : "none",
-                },
-              ]}
-            >
-              {toDo.text}
-            </Text>
-            <TouchableOpacity onPress={() => deleteToDo(key)}>
-              <Fontisto name="trash" size={18} color={theme.white} />
-            </TouchableOpacity>
+            {editingKey === key ? (
+              <TextInput
+                style={styles.editInput}
+                value={editingText}
+                onChangeText={setEditingText}
+                onSubmitEditing={() => editToDo(key)}
+                returnKeyType="done"
+              />
+            ) : (
+              <Text
+                style={[
+                  styles.toDoText,
+                  {
+                    textDecorationLine: toDo.completed
+                      ? "line-through"
+                      : "none",
+                  },
+                ]}
+              >
+                {toDo.text}
+              </Text>
+            )}
+            <View style={styles.toDoToggleContainer}>
+              {editingKey === key ? (
+                <TouchableOpacity onPress={() => editToDo(key)}>
+                  <Ionicons name="checkmark" size={24} color={theme.white} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={() => startEditing(key, toDo.text)}>
+                  <Feather name="edit" size={18} color={theme.white} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.toDoTrash}
+                onPress={() => deleteToDo(key)}
+              >
+                <Fontisto name="trash" size={18} color={theme.white} />
+              </TouchableOpacity>
+            </View>
           </View>
         ))}
       </ScrollView>
@@ -172,5 +218,23 @@ const styles = StyleSheet.create({
     color: theme.white,
     fontSize: 16,
     fontWeight: "500",
+    flex: 1,
+    marginLeft: 10,
+  },
+  toDoToggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 10,
+  },
+  toDoTrash: {
+    marginLeft: 10,
+  },
+  editInput: {
+    flex: 1,
+    backgroundColor: theme.white,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    marginLeft: 10,
   },
 });
