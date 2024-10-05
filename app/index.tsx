@@ -1,4 +1,5 @@
 import { theme } from "@/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -17,6 +18,7 @@ const STORAGE_KEY = "@toDos-mc";
 
 type ToDo = {
   text: string;
+  completed: boolean;
 };
 
 export default function Index() {
@@ -48,7 +50,7 @@ export default function Index() {
     }
 
     const newToDos = new Map(toDos);
-    newToDos.set(Date.now().toString(), { text });
+    newToDos.set(Date.now().toString(), { text, completed: false });
     setToDos(newToDos);
     await saveToDos(newToDos);
     setText("");
@@ -67,6 +69,16 @@ export default function Index() {
         },
       },
     ]);
+  };
+
+  const toggleComplete = (key: string) => {
+    const newToDos = new Map(toDos);
+    const toDo = newToDos.get(key);
+    if (toDo) {
+      toDo.completed = !toDo.completed;
+      setToDos(newToDos);
+      saveToDos(newToDos);
+    }
   };
 
   return (
@@ -91,7 +103,23 @@ export default function Index() {
       <ScrollView>
         {[...toDos.entries()].map(([key, toDo]) => (
           <View style={styles.toDo} key={key}>
-            <Text style={styles.toDoText}>{toDo.text}</Text>
+            <TouchableOpacity onPress={() => toggleComplete(key)}>
+              <Ionicons
+                name={toDo.completed ? "checkbox" : "square-outline"}
+                size={22}
+                color={theme.white}
+              />
+            </TouchableOpacity>
+            <Text
+              style={[
+                styles.toDoText,
+                {
+                  textDecorationLine: toDo.completed ? "line-through" : "none",
+                },
+              ]}
+            >
+              {toDo.text}
+            </Text>
             <TouchableOpacity onPress={() => deleteToDo(key)}>
               <Fontisto name="trash" size={18} color={theme.white} />
             </TouchableOpacity>
